@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Health Record - Quantified Self via Nostr</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+        }
+
+        /* Navbar Styles */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .navbar-brand h4 {
+            margin: 0;
+            font-size: 1.2em;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+        }
+
+        .navbar-menu {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 8px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            background: #6a5acd;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.3);
+            z-index: 1;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .dropdown-content a {
+            color: white;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            font-size: 14px;
+        }
+
+        .dropdown-content a:hover {
+            background-color: #7b68ee;
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .section {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .section h3 {
+            margin-top: 0;
+            color: #ffd700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        input[type="text"], input[type="number"], input[type="date"], input[type="time"], select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            font-size: 14px;
+            box-sizing: border-box;
+            margin: 5px 0;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 10px 0;
+        }
+        
+        button {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            margin: 5px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(238, 90, 36, 0.3);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(238, 90, 36, 0.4);
+        }
+        
+        button.health-btn {
+            background: linear-gradient(45deg, #2ecc71, #27ae60);
+            box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3);
+        }
+        
+        button.health-btn:hover {
+            box-shadow: 0 6px 20px rgba(46, 204, 113, 0.4);
+        }
+        
+        .status {
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            text-align: center;
+            font-size: 0.9em;
+            transition: all 0.5s ease;
+        }
+        
+        .status.connected {
+            background: rgba(46, 204, 113, 0.3);
+            border: 1px solid #2ecc71;
+        }
+        
+        .status.disconnected {
+            background: rgba(231, 76, 60, 0.3);
+            border: 1px solid #e74c3c;
+        }
+        
+        .status.connecting {
+            background: rgba(241, 196, 15, 0.3);
+            border: 1px solid #f1c40f;
+        }
+        
+        .key-display {
+            font-family: monospace;
+            font-size: 11px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 8px;
+            border-radius: 5px;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+        
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        
+        .metric-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .metric-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #ffd700;
+        }
+        
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+        
+        .modal-header {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px 30px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 15px 15px 0 0;
+        }
+        
+        .modal-header h3 {
+            margin: 0;
+            color: #ffd700;
+            font-size: 1.5em;
+        }
+        
+        .close {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 50%;
+            transition: background 0.3s ease;
+        }
+        
+        .close:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .modal-body {
+            padding: 30px;
+            color: white;
+        }
+        
+        /* Timeline Styles */
+        .timeline-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .timeline-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .timeline-header h2 {
+            margin: 0;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .timeline-stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px 25px;
+            border-radius: 10px;
+            text-align: center;
+            min-width: 120px;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #ffd700;
+            display: block;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+        
+        .add-record-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+        
+        .add-btn {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(238, 90, 36, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .add-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(238, 90, 36, 0.4);
+        }
+        
+        .timeline {
+            position: relative;
+            margin-top: 40px;
+        }
+        
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 3px;
+            height: 100%;
+            background: linear-gradient(to bottom, #ffd700, rgba(255, 215, 0, 0.3));
+            border-radius: 3px;
+        }
+        
+        .timeline-item {
+            margin-bottom: 30px;
+            position: relative;
+            width: 45%;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+        
+        .timeline-item:hover {
+            transform: translateY(-5px);
+        }
+        
+        .timeline-item:nth-child(odd) {
+            left: 0;
+        }
+        
+        .timeline-item:nth-child(even) {
+            left: 55%;
+        }
+        
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #ffd700;
+            border-radius: 50%;
+            top: 25px;
+            border: 3px solid white;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+        
+        .timeline-item:nth-child(odd)::before {
+            right: -41px;
+        }
+        
+        .timeline-item:nth-child(even)::before {
+            left: -41px;
+        }
+        
+        .timeline-date {
+            background: rgba(255, 215, 0, 0.2);
+            color: #ffd700;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+        
+        .timeline-category {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.7em;
+            font-weight: bold;
+            text-transform: uppercase;
+            display: inline-block;
+            margin-left: 10px;
+        }
+        
+        .timeline-content h4 {
+            margin: 10px 0 5px 0;
+            color: white;
+            font-size: 1.2em;
+        }
+        
+        .timeline-details {
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.5;
+        }
+        
+        .timeline-details .metric {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 3px 8px;
+            border-radius: 12px;
+            margin: 2px;
+            font-size: 0.85em;
+        }
+        
+        .empty-timeline {
+            text-align: center;
+            padding: 60px 20px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .empty-timeline h3 {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .navbar { flex-direction: column; gap: 10px; }
+            .timeline::before { left: 20px; }
+            .timeline-item { width: calc(100% - 50px); left: 40px !important; border-left-width: 4px !important; border-right: none !important; }
+            .timeline-item::before { left: -30px !important; }
+            .timeline-stats { gap: 15px; }
+            .add-record-buttons { gap: 10px; }
+            .add-btn { padding: 12px 20px; font-size: 13px; }
+            .modal-content { width: 95%; margin: 10% auto; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav class="navbar">
+            <div class="navbar-brand">
+                <span style="font-size: 1.5em;">🩺</span>
+                <h4>Personal Health Record</h4>
+            </div>
+            <div id="connectionStatus" class="status disconnected">
+                Initializing...
+            </div>
+            <div class="navbar-menu">
+                 <button class="nav-btn" onclick="loadHealthRecords()">🔄 Refresh</button>
+                 <button class="nav-btn" onclick="exportHealthData()">📤 Export All</button>
+                <div class="dropdown">
+                    <button class="nav-btn">🔑 Identity</button>
+                    <div class="dropdown-content">
+                        <a href="#" onclick="healthRecord.generateNewIdentity()">🆕 New Identity</a>
+                        <a href="#" onclick="healthRecord.importKeypair()">📥 Import Keys</a>
+                        <a href="#" onclick="healthRecord.exportKeypair()">📤 Export Keys</a>
+                    </div>
+                </div>
+                <button class="nav-btn profile-btn" onclick="openProfileModal()">
+                    👤 Profile
+                </button>
+            </div>
+        </nav>
+        
+        <div class="timeline-container">
+            <div class="timeline-header">
+                <h2>📊 Health Timeline</h2>
+                <div class="timeline-stats">
+                    <div class="stat-card">
+                        <span class="stat-number" id="totalRecords">0</span>
+                        <span class="stat-label">Total Records</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-number" id="thisWeek">0</span>
+                        <span class="stat-label">This Week</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-number" id="categories">0</span>
+                        <span class="stat-label">Categories</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="add-record-buttons">
+                <button class="add-btn" onclick="openModal('vitalsModal')">❤️ Vital Signs</button>
+                <button class="add-btn" onclick="openModal('activityModal')">🏃‍♂️ Activity</button>
+                <button class="add-btn" onclick="openModal('mentalModal')">🧠 Mental Health</button>
+                <button class="add-btn" onclick="openModal('labModal')">🔬 Lab Results</button>
+                <button class="add-btn" onclick="openModal('notesModal')">📝 New Note</button>
+            </div>
+            
+            <div id="healthTimeline" class="timeline">
+                <div class="empty-timeline">
+                    <h3>🌟 Start Your Health Journey</h3>
+                    <p>Click a button above to record your first health data entry!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="profileModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>👤 Edit Your Profile</h3>
+                <span class="close" onclick="closeModal('profileModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p style="opacity: 0.8; font-size: 0.9em; margin-bottom: 20px;">This information will be saved as an encrypted FHIR 'Patient' resource.</p>
+                <div class="metric-grid">
+                    <div class="metric-card">
+                        <div class="metric-title">Full Name</div>
+                        <div class="form-row">
+                            <input type="text" id="profileFirstName" placeholder="First Name">
+                            <input type="text" id="profileLastName" placeholder="Last Name">
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-title">Date of Birth</div>
+                        <input type="date" id="profileDob">
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-title">Gender</div>
+                        <select id="profileGender">
+                            <option value="">Select...</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="other">Other</option>
+                            <option value="unknown">Prefer not to say</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="metric-card" style="margin-top: 15px;">
+                    <div class="metric-title">Your Public Health ID (npub)</div>
+                    <div id="publicKeyDisplay" class="key-display">Not generated yet.</div>
+                </div>
+                <button onclick="recordProfileData(); closeModal('profileModal')" class="health-btn" style="margin-top: 20px;">Save Profile</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="notesModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📝 Add a New Note</h3>
+                <span class="close" onclick="closeModal('notesModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <textarea id="noteText" placeholder="Enter any text, observation, or thought you want to record securely..." rows="8"></textarea>
+                <button onclick="recordNote(); closeModal('notesModal')" class="health-btn">Save Note</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="vitalsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>❤️ Record Vital Signs</h3>
+                <span class="close" onclick="closeModal('vitalsModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="metric-grid">
+                    <div class="metric-card">
+                        <div class="metric-title">Blood Pressure</div>
+                        <div class="form-row">
+                            <input type="number" id="systolic" placeholder="Systolic (mmHg)">
+                            <input type="number" id="diastolic" placeholder="Diastolic (mmHg)">
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-title">Heart Rate</div>
+                        <input type="number" id="heartRate" placeholder="BPM">
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-title">Body Weight</div>
+                        <div class="form-row">
+                           <input type="number" id="weight" placeholder="Weight" step="0.1">
+                            <select id="weightUnit">
+                                <option value="lbs">Pounds</option>
+                                <option value="kg">Kilograms</option>
+                            </select>
+                        </div>
+                    </div>
+                     <div class="metric-card">
+                        <div class="metric-title">Oxygen Saturation</div>
+                        <input type="number" id="oxygenSat" placeholder="SpO2 %">
+                    </div>
+                </div>
+                <button onclick="recordVitalSigns(); closeModal('vitalsModal')" class="health-btn">Record Vital Signs</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="activityModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🏃‍♂️ Record Activity & Fitness</h3>
+                <span class="close" onclick="closeModal('activityModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="metric-grid">
+                    <div class="metric-card">
+                        <div class="metric-title">Daily Totals</div>
+                        <input type="number" id="steps" placeholder="Steps taken">
+                        <input type="number" id="activeMinutes" placeholder="Active minutes">
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-title">Exercise Session</div>
+                        <select id="exerciseType">
+                            <option value="">Select Exercise Type</option>
+                            <option value="running">Running</option>
+                            <option value="walking">Walking</option>
+                            <option value="cycling">Cycling</option>
+                            <option value="swimming">Swimming</option>
+                            <option value="weightlifting">Weight Lifting</option>
+                            <option value="yoga">Yoga</option>
+                        </select>
+                        <input type="number" id="exerciseDuration" placeholder="Duration (minutes)">
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-title">Sleep</div>
+                        <input type="number" id="sleepDuration" placeholder="Sleep Duration (hours)">
+                        <input type="number" id="sleepQuality" placeholder="Sleep quality (1-10)">
+                    </div>
+                </div>
+                <button onclick="recordActivity(); closeModal('activityModal')" class="health-btn">Record Activity Data</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="mentalModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🧠 Record Mental Health</h3>
+                <span class="close" onclick="closeModal('mentalModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="metric-grid">
+                    <div class="metric-card">
+                        <div class="metric-title">Mood & Stress</div>
+                        <select id="mood">
+                            <option value="">Select Mood</option>
+                            <option value="excellent">Excellent</option>
+                            <option value="good">Good</option>
+                            <option value="neutral">Neutral</option>
+                            <option value="low">Low</option>
+                            <option value="poor">Poor</option>
+                        </select>
+                        <input type="number" id="stressLevel" placeholder="Stress level (1-10)">
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-title">Mental Activities</div>
+                        <input type="number" id="meditationMinutes" placeholder="Meditation (minutes)">
+                    </div>
+                </div>
+                <textarea id="mentalNotes" placeholder="Mental health notes or observations..." rows="3"></textarea>
+                <button onclick="recordMentalHealth(); closeModal('mentalModal')" class="health-btn">Record Mental Health</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="labModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🔬 Record Lab Results</h3>
+                <span class="close" onclick="closeModal('labModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="metric-grid">
+                    <div class="metric-card">
+                        <div class="metric-title">Blood Work</div>
+                        <input type="number" id="glucose" placeholder="Glucose (mg/dL)">
+                        <input type="number" id="cholesterolTotal" placeholder="Total Cholesterol (mg/dL)">
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-title">Other Metrics</div>
+                        <input type="number" id="hba1c" placeholder="HbA1c (%)" step="0.1">
+                    </div>
+                </div>
+                <textarea id="labNotes" placeholder="Lab results notes or medical observations..." rows="3"></textarea>
+                <button onclick="recordLabData(); closeModal('labModal')" class="health-btn">Record Lab Data</button>
+            </div>
+        </div>
+    </div>
+
+    <div style="display: none;">
+        <div id="privateKeyDisplay"></div>
+        <div id="debugInfo"></div>
+        <div id="loadBtn"></div>
+    </div>
+
+    <script src="https://unpkg.com/nostr-tools@2.7.2/lib/nostr.bundle.js"></script>
+    <script src="health-record.js"></script>
+</body>
+</html>
