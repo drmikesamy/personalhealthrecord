@@ -285,18 +285,16 @@ class PersonalHealthRecord {
         if (!this.nostrKeys) return;
         const observations = [];
         
-        const activityType = document.getElementById('activityType').value;
-        const duration = document.getElementById('activityDuration').value;
-        const intensity = document.getElementById('activityIntensity').value;
-        const steps = document.getElementById('activitySteps').value;
-        const calories = document.getElementById('activityCalories').value;
-        const notes = document.getElementById('activityNotes').value;
+        const exerciseType = document.getElementById('exerciseType')?.value;
+        const exerciseDuration = document.getElementById('exerciseDuration')?.value;
+        const steps = document.getElementById('steps')?.value;
+        const activeMinutes = document.getElementById('activeMinutes')?.value;
+        const sleepDuration = document.getElementById('sleepDuration')?.value;
+        const sleepQuality = document.getElementById('sleepQuality')?.value;
         
-        if (activityType) {
-            let activityDetails = `Activity: ${activityType}`;
-            if (duration) activityDetails += `, Duration: ${duration} minutes`;
-            if (intensity) activityDetails += `, Intensity: ${intensity}`;
-            if (notes) activityDetails += `, Notes: ${notes}`;
+        if (exerciseType) {
+            let activityDetails = `Exercise: ${exerciseType}`;
+            if (exerciseDuration) activityDetails += `, Duration: ${exerciseDuration} minutes`;
             
             observations.push(this.createFHIRObservation('activity', 
                 { code: '72133-2', display: 'Physical activity' }, 
@@ -309,10 +307,22 @@ class PersonalHealthRecord {
                 steps, 'steps'));
         }
         
-        if (calories) {
+        if (activeMinutes) {
             observations.push(this.createFHIRObservation('activity', 
-                { code: '41981-2', display: 'Calories burned' }, 
-                calories, 'kcal'));
+                { code: '72133-2', display: 'Active minutes' }, 
+                activeMinutes, 'min'));
+        }
+        
+        if (sleepDuration) {
+            observations.push(this.createFHIRObservation('vital-signs', 
+                { code: '93832-4', display: 'Sleep duration' }, 
+                sleepDuration, 'h'));
+        }
+        
+        if (sleepQuality) {
+            observations.push(this.createFHIRObservation('survey', 
+                { code: '72133-2', display: 'Sleep quality' }, 
+                sleepQuality, 'score', `Sleep quality: ${sleepQuality}/10`));
         }
         
         if (observations.length === 0) return alert("Please enter at least one activity metric.");
@@ -332,23 +342,15 @@ class PersonalHealthRecord {
         if (!this.nostrKeys) return;
         const observations = [];
         
-        const mood = document.getElementById('moodRating').value;
-        const anxiety = document.getElementById('anxietyLevel').value;
-        const stress = document.getElementById('stressLevel').value;
-        const sleep = document.getElementById('sleepHours').value;
-        const sleepQuality = document.getElementById('sleepQuality').value;
-        const notes = document.getElementById('mentalHealthNotes').value;
+        const mood = document.getElementById('mood')?.value;
+        const stress = document.getElementById('stressLevel')?.value;
+        const meditation = document.getElementById('meditationMinutes')?.value;
+        const notes = document.getElementById('mentalNotes')?.value;
         
         if (mood) {
             observations.push(this.createFHIRObservation('survey', 
                 { code: '72133-2', display: 'Mood assessment' }, 
-                mood, 'score', `Mood rating: ${mood}/10`));
-        }
-        
-        if (anxiety) {
-            observations.push(this.createFHIRObservation('survey', 
-                { code: '72133-2', display: 'Anxiety level' }, 
-                anxiety, 'score', `Anxiety level: ${anxiety}/10`));
+                mood, null, `Mood: ${mood}`));
         }
         
         if (stress) {
@@ -357,16 +359,10 @@ class PersonalHealthRecord {
                 stress, 'score', `Stress level: ${stress}/10`));
         }
         
-        if (sleep) {
-            observations.push(this.createFHIRObservation('vital-signs', 
-                { code: '93832-4', display: 'Sleep duration' }, 
-                sleep, 'h'));
-        }
-        
-        if (sleepQuality) {
-            observations.push(this.createFHIRObservation('survey', 
-                { code: '72133-2', display: 'Sleep quality' }, 
-                sleepQuality, 'score', `Sleep quality: ${sleepQuality}/10`));
+        if (meditation) {
+            observations.push(this.createFHIRObservation('activity', 
+                { code: '72133-2', display: 'Meditation' }, 
+                meditation, 'min', `Meditation: ${meditation} minutes`));
         }
         
         if (notes) {
@@ -392,13 +388,10 @@ class PersonalHealthRecord {
         if (!this.nostrKeys) return;
         const observations = [];
         
-        const glucose = document.getElementById('glucose').value;
-        const cholesterol = document.getElementById('cholesterol').value;
-        const hdl = document.getElementById('hdl').value;
-        const ldl = document.getElementById('ldl').value;
-        const hemoglobin = document.getElementById('hemoglobin').value;
-        const whiteBloodCells = document.getElementById('whiteBloodCells').value;
-        const labNotes = document.getElementById('labNotes').value;
+        const glucose = document.getElementById('glucose')?.value;
+        const cholesterolTotal = document.getElementById('cholesterolTotal')?.value;
+        const hba1c = document.getElementById('hba1c')?.value;
+        const labNotes = document.getElementById('labNotes')?.value;
         
         if (glucose) {
             observations.push(this.createFHIRObservation('laboratory', 
@@ -406,34 +399,16 @@ class PersonalHealthRecord {
                 glucose, 'mg/dL'));
         }
         
-        if (cholesterol) {
+        if (cholesterolTotal) {
             observations.push(this.createFHIRObservation('laboratory', 
                 { code: '2093-3', display: 'Total cholesterol' }, 
-                cholesterol, 'mg/dL'));
+                cholesterolTotal, 'mg/dL'));
         }
         
-        if (hdl) {
+        if (hba1c) {
             observations.push(this.createFHIRObservation('laboratory', 
-                { code: '2085-9', display: 'HDL cholesterol' }, 
-                hdl, 'mg/dL'));
-        }
-        
-        if (ldl) {
-            observations.push(this.createFHIRObservation('laboratory', 
-                { code: '2089-1', display: 'LDL cholesterol' }, 
-                ldl, 'mg/dL'));
-        }
-        
-        if (hemoglobin) {
-            observations.push(this.createFHIRObservation('laboratory', 
-                { code: '718-7', display: 'Hemoglobin' }, 
-                hemoglobin, 'g/dL'));
-        }
-        
-        if (whiteBloodCells) {
-            observations.push(this.createFHIRObservation('laboratory', 
-                { code: '6690-2', display: 'White blood cells' }, 
-                whiteBloodCells, 'K/uL'));
+                { code: '4548-4', display: 'HbA1c' }, 
+                hba1c, '%'));
         }
         
         if (labNotes) {
