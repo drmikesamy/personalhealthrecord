@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Health Record - HTMX Version</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://unpkg.com/nostr-tools/lib/nostr.bundle.js"></script>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #64748b;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-color);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem;
+            background: linear-gradient(135deg, var(--primary-color), #3b82f6);
+            color: white;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.2);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .status-card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .status-item {
+            text-align: center;
+            padding: 1rem;
+            background: var(--bg-color);
+            border-radius: 0.5rem;
+        }
+
+        .status.connected { color: var(--success-color); }
+        .status.connecting { color: var(--warning-color); }
+        .status.disconnected { color: var(--danger-color); }
+
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .action-button {
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: var(--text-primary);
+            display: block;
+        }
+
+        .action-button:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(37, 99, 235, 0.15);
+        }
+
+        .action-button .icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            background-color: var(--card-bg);
+            margin: 5% auto;
+            padding: 2rem;
+            border-radius: 1rem;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .close {
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            transition: background-color 0.2s;
+        }
+
+        .close:hover {
+            background-color: var(--bg-color);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: background-color 0.2s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            background: #1d4ed8;
+        }
+
+        .btn-secondary {
+            background: var(--secondary-color);
+        }
+
+        .btn-secondary:hover {
+            background: #475569;
+        }
+
+        .timeline {
+            background: var(--card-bg);
+            border-radius: 0.75rem;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border-color);
+        }
+
+        .timeline-item {
+            border-left: 4px solid var(--border-color);
+            margin-left: 1rem;
+            padding-left: 1.5rem;
+            margin-bottom: 2rem;
+            position: relative;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -8px;
+            top: 0.5rem;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--card-bg);
+            border: 3px solid var(--border-color);
+        }
+
+        .timeline-date {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .timeline-category {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: white;
+            margin-bottom: 0.5rem;
+        }
+
+        .timeline-content h4 {
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .timeline-details {
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .metric {
+            display: inline-block;
+            background: var(--bg-color);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            margin: 0.125rem;
+            font-size: 0.875rem;
+        }
+
+        .empty-timeline {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-color);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            display: block;
+        }
+
+        .debug-info {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-family: monospace;
+            font-size: 0.875rem;
+            margin-top: 2rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .htmx-indicator {
+            opacity: 0;
+            transition: opacity 200ms ease-in;
+        }
+
+        .htmx-request .htmx-indicator {
+            opacity: 1;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .actions-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .modal-content {
+                margin: 10% auto;
+                width: 95%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🏥 Personal Health Record</h1>
+            <p>Secure, decentralized health data management using Nostr and FHIR standards</p>
+        </header>
+
+        <div class="status-card" id="status-card">
+            <div class="status-grid">
+                <div class="status-item">
+                    <strong>Connection Status</strong>
+                    <div id="connectionStatus" class="status disconnected">🔴 No Identity</div>
+                </div>
+                <div class="status-item">
+                    <strong>Health Identity</strong>
+                    <div id="publicKeyDisplay">Not generated</div>
+                </div>
+                <div class="status-item">
+                    <button class="btn btn-secondary" 
+                            hx-post="/api/export-keys" 
+                            hx-trigger="click"
+                            id="exportBtn">Export Keys</button>
+                </div>
+                <div class="status-item">
+                    <input type="file" id="importFile" accept=".json" style="display: none;">
+                    <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">Import Keys</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="actions-grid">
+            <button class="action-button" onclick="openModal('profileModal')">
+                <span class="icon">👤</span>
+                <strong>Update Profile</strong>
+                <p>Personal information and demographics</p>
+            </button>
+
+            <button class="action-button" onclick="openModal('noteModal')">
+                <span class="icon">📝</span>
+                <strong>Add Note</strong>
+                <p>General health observations</p>
+            </button>
+
+            <button class="action-button" onclick="openModal('vitalsModal')">
+                <span class="icon">❤️</span>
+                <strong>Vital Signs</strong>
+                <p>Blood pressure, heart rate, weight</p>
+            </button>
+
+            <button class="action-button" onclick="openModal('activityModal')">
+                <span class="icon">🏃‍♂️</span>
+                <strong>Activity</strong>
+                <p>Exercise, steps, calories</p>
+            </button>
+
+            <button class="action-button" onclick="openModal('mentalHealthModal')">
+                <span class="icon">🧠</span>
+                <strong>Mental Health</strong>
+                <p>Mood, stress, sleep tracking</p>
+            </button>
+
+            <button class="action-button" onclick="openModal('labModal')">
+                <span class="icon">🔬</span>
+                <strong>Lab Results</strong>
+                <p>Blood work and lab values</p>
+            </button>
+        </div>
+
+        <div class="timeline">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-number" id="totalRecords">0</span>
+                    <small>Total Records</small>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number" id="thisWeek">0</span>
+                    <small>This Week</small>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number" id="categories">0</span>
+                    <small>Categories</small>
+                </div>
+            </div>
+
+            <h3 style="margin-bottom: 1.5rem;">📊 Health Timeline</h3>
+            <div id="healthTimeline" 
+                 hx-get="/api/timeline" 
+                 hx-trigger="load, recordAdded from:body">
+                <div class="empty-timeline">
+                    <h3>🌟 Start Your Health Journey</h3>
+                    <p>Click a button above to record your first health data entry!</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="debug-info" id="debugInfo">
+            <strong>Debug Log:</strong><br>
+            [System] HTMX Personal Health Record initialized
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="profileModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>👤 Update Profile</h3>
+                <span class="close" onclick="closeModal('profileModal')">&times;</span>
+            </div>
+            <form hx-post="/api/record/profile" 
+                  hx-trigger="submit" 
+                  hx-target="#healthTimeline"
+                  hx-on::after-request="closeModal('profileModal'); htmx.trigger(document.body, 'recordAdded')">
+                <div class="form-group">
+                    <label for="profileFirstName">First Name</label>
+                    <input type="text" id="profileFirstName" name="firstName">
+                </div>
+                <div class="form-group">
+                    <label for="profileLastName">Last Name</label>
+                    <input type="text" id="profileLastName" name="lastName">
+                </div>
+                <div class="form-group">
+                    <label for="profileDob">Date of Birth</label>
+                    <input type="date" id="profileDob" name="dob">
+                </div>
+                <div class="form-group">
+                    <label for="profileGender">Gender</label>
+                    <select id="profileGender" name="gender">
+                        <option value="">Select...</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                        <option value="unknown">Prefer not to say</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn">
+                    <span class="htmx-indicator spinner"></span>
+                    Record Profile
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Note Modal -->
+    <div id="noteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📝 Add Health Note</h3>
+                <span class="close" onclick="closeModal('noteModal')">&times;</span>
+            </div>
+            <form hx-post="/api/record/note" 
+                  hx-trigger="submit" 
+                  hx-target="#healthTimeline"
+                  hx-on::after-request="closeModal('noteModal'); htmx.trigger(document.body, 'recordAdded')">
+                <div class="form-group">
+                    <label for="noteText">Note</label>
+                    <textarea id="noteText" name="noteText" rows="4" placeholder="Enter your health note..." required></textarea>
+                </div>
+                <button type="submit" class="btn">
+                    <span class="htmx-indicator spinner"></span>
+                    Record Note
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Vitals Modal -->
+    <div id="vitalsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>❤️ Record Vital Signs</h3>
+                <span class="close" onclick="closeModal('vitalsModal')">&times;</span>
+            </div>
+            <form hx-post="/api/record/vitals" 
+                  hx-trigger="submit" 
+                  hx-target="#healthTimeline"
+                  hx-on::after-request="closeModal('vitalsModal'); htmx.trigger(document.body, 'recordAdded')">
+                <div class="form-group">
+                    <label>Blood Pressure (mmHg)</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                        <input type="number" name="systolic" placeholder="Systolic">
+                        <input type="number" name="diastolic" placeholder="Diastolic">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="heartRate">Heart Rate (bpm)</label>
+                    <input type="number" id="heartRate" name="heartRate">
+                </div>
+                <div class="form-group">
+                    <label for="weight">Weight</label>
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 0.5rem;">
+                        <input type="number" id="weight" name="weight" step="0.1">
+                        <select name="weightUnit">
+                            <option value="kg">kg</option>
+                            <option value="lbs">lbs</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="oxygenSat">Oxygen Saturation (%)</label>
+                    <input type="number" id="oxygenSat" name="oxygenSat" min="0" max="100">
+                </div>
+                <button type="submit" class="btn">
+                    <span class="htmx-indicator spinner"></span>
+                    Record Vitals
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Activity Modal -->
+    <div id="activityModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🏃‍♂️ Record Activity</h3>
+                <span class="close" onclick="closeModal('activityModal')">&times;</span>
+            </div>
+            <form hx-post="/api/record/activity" 
+                  hx-trigger="submit" 
+                  hx-target="#healthTimeline"
+                  hx-on::after-request="closeModal('activityModal'); htmx.trigger(document.body, 'recordAdded')">
+                <div class="form-group">
+                    <label for="activityType">Activity Type</label>
+                    <select id="activityType" name="activityType">
+                        <option value="">Select activity...</option>
+                        <option value="walking">Walking</option>
+                        <option value="running">Running</option>
+                        <option value="cycling">Cycling</option>
+                        <option value="swimming">Swimming</option>
+                        <option value="weightlifting">Weight Lifting</option>
+                        <option value="yoga">Yoga</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="activityDuration">Duration (minutes)</label>
+                    <input type="number" id="activityDuration" name="duration">
+                </div>
+                <div class="form-group">
+                    <label for="activityIntensity">Intensity</label>
+                    <select id="activityIntensity" name="intensity">
+                        <option value="">Select intensity...</option>
+                        <option value="low">Low</option>
+                        <option value="moderate">Moderate</option>
+                        <option value="high">High</option>
+                        <option value="very-high">Very High</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="activitySteps">Steps</label>
+                    <input type="number" id="activitySteps" name="steps">
+                </div>
+                <div class="form-group">
+                    <label for="activityCalories">Calories Burned</label>
+                    <input type="number" id="activityCalories" name="calories">
+                </div>
+                <div class="form-group">
+                    <label for="activityNotes">Notes</label>
+                    <textarea id="activityNotes" name="notes" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn">
+                    <span class="htmx-indicator spinner"></span>
+                    Record Activity
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Mental Health Modal -->
+    <div id="mentalHealthModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🧠 Mental Health Check-in</h3>
+                <span class="close" onclick="closeModal('mentalHealthModal')">&times;</span>
+            </div>
+            <form hx-post="/api/record/mental-health" 
+                  hx-trigger="submit" 
+                  hx-target="#healthTimeline"
+                  hx-on::after-request="closeModal('mentalHealthModal'); htmx.trigger(document.body, 'recordAdded')">
+                <div class="form-group">
+                    <label for="moodRating">Mood (1-10)</label>
+                    <input type="range" id="moodRating" name="mood" min="1" max="10" step="1">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.875rem; color: var(--text-secondary);">
+                        <span>1 (Poor)</span>
+                        <span>10 (Excellent)</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="anxietyLevel">Anxiety Level (1-10)</label>
+                    <input type="range" id="anxietyLevel" name="anxiety" min="1" max="10" step="1">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.875rem; color: var(--text-secondary);">
+                        <span>1 (Low)</span>
+                        <span>10 (High)</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="stressLevel">Stress Level (1-10)</label>
+                    <input type="range" id="stressLevel" name="stress" min="1" max="10" step="1">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.875rem; color: var(--text-secondary);">
+                        <span>1 (Low)</span>
+                        <span>10 (High)</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="sleepHours">Sleep Duration (hours)</label>
+                    <input type="number" id="sleepHours" name="sleep" min="0" max="24" step="0.5">
+                </div>
+                <div class="form-group">
+                    <label for="sleepQuality">Sleep Quality (1-10)</label>
+                    <input type="range" id="sleepQuality" name="sleepQuality" min="1" max="10" step="1">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.875rem; color: var(--text-secondary);">
+                        <span>1 (Poor)</span>
+                        <span>10 (Excellent)</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="mentalHealthNotes">Notes</label>
+                    <textarea id="mentalHealthNotes" name="notes" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn">
+                    <span class="htmx-indicator spinner"></span>
+                    Record Mental Health
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lab Results Modal -->
+    <div id="labModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🔬 Lab Results</h3>
+                <span class="close" onclick="closeModal('labModal')">&times;</span>
+            </div>
+            <form hx-post="/api/record/lab" 
+                  hx-trigger="submit" 
+                  hx-target="#healthTimeline"
+                  hx-on::after-request="closeModal('labModal'); htmx.trigger(document.body, 'recordAdded')">
+                <div class="form-group">
+                    <label for="glucose">Glucose (mg/dL)</label>
+                    <input type="number" id="glucose" name="glucose" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label for="cholesterol">Total Cholesterol (mg/dL)</label>
+                    <input type="number" id="cholesterol" name="cholesterol" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label for="hdl">HDL Cholesterol (mg/dL)</label>
+                    <input type="number" id="hdl" name="hdl" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label for="ldl">LDL Cholesterol (mg/dL)</label>
+                    <input type="number" id="ldl" name="ldl" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label for="hemoglobin">Hemoglobin (g/dL)</label>
+                    <input type="number" id="hemoglobin" name="hemoglobin" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label for="whiteBloodCells">White Blood Cells (K/uL)</label>
+                    <input type="number" id="whiteBloodCells" name="whiteBloodCells" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label for="labNotes">Notes</label>
+                    <textarea id="labNotes" name="notes" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn">
+                    <span class="htmx-indicator spinner"></span>
+                    Record Lab Results
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script src="client.js"></script>
+</body>
+</html>

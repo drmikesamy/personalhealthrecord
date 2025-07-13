@@ -16,7 +16,6 @@ class PersonalHealthRecord {
             'wss://nos.lol',
             'wss://relay.nostr.band',
             'wss://nostr-pub.wellorder.net',
-            'wss://relay.current.fyi'
         ];
         
         this.log('🏥 Personal Health Record system initialized');
@@ -282,8 +281,179 @@ class PersonalHealthRecord {
         setTimeout(() => displayTimelineRecords(), 500);
     }
 
-    // ... (recordActivity, recordMentalHealth, recordLabData can be simplified similarly)
-    // For brevity, the other record functions are omitted but would follow the pattern of recordVitalSigns.
+    async recordActivity() {
+        if (!this.nostrKeys) return;
+        const observations = [];
+        
+        const activityType = document.getElementById('activityType').value;
+        const duration = document.getElementById('activityDuration').value;
+        const intensity = document.getElementById('activityIntensity').value;
+        const steps = document.getElementById('activitySteps').value;
+        const calories = document.getElementById('activityCalories').value;
+        const notes = document.getElementById('activityNotes').value;
+        
+        if (activityType) {
+            let activityDetails = `Activity: ${activityType}`;
+            if (duration) activityDetails += `, Duration: ${duration} minutes`;
+            if (intensity) activityDetails += `, Intensity: ${intensity}`;
+            if (notes) activityDetails += `, Notes: ${notes}`;
+            
+            observations.push(this.createFHIRObservation('activity', 
+                { code: '72133-2', display: 'Physical activity' }, 
+                null, null, activityDetails));
+        }
+        
+        if (steps) {
+            observations.push(this.createFHIRObservation('activity', 
+                { code: '55423-8', display: 'Steps' }, 
+                steps, 'steps'));
+        }
+        
+        if (calories) {
+            observations.push(this.createFHIRObservation('activity', 
+                { code: '41981-2', display: 'Calories burned' }, 
+                calories, 'kcal'));
+        }
+        
+        if (observations.length === 0) return alert("Please enter at least one activity metric.");
+        
+        const fhirBundle = { 
+            resourceType: 'Bundle', 
+            type: 'collection', 
+            entry: observations.map(obs => ({ resource: obs }))
+        };
+        
+        await this.storeHealthData(fhirBundle, 'activity');
+        this.log('🏃‍♂️ Activity data recorded');
+        setTimeout(() => displayTimelineRecords(), 500);
+    }
+
+    async recordMentalHealth() {
+        if (!this.nostrKeys) return;
+        const observations = [];
+        
+        const mood = document.getElementById('moodRating').value;
+        const anxiety = document.getElementById('anxietyLevel').value;
+        const stress = document.getElementById('stressLevel').value;
+        const sleep = document.getElementById('sleepHours').value;
+        const sleepQuality = document.getElementById('sleepQuality').value;
+        const notes = document.getElementById('mentalHealthNotes').value;
+        
+        if (mood) {
+            observations.push(this.createFHIRObservation('survey', 
+                { code: '72133-2', display: 'Mood assessment' }, 
+                mood, 'score', `Mood rating: ${mood}/10`));
+        }
+        
+        if (anxiety) {
+            observations.push(this.createFHIRObservation('survey', 
+                { code: '72133-2', display: 'Anxiety level' }, 
+                anxiety, 'score', `Anxiety level: ${anxiety}/10`));
+        }
+        
+        if (stress) {
+            observations.push(this.createFHIRObservation('survey', 
+                { code: '72133-2', display: 'Stress level' }, 
+                stress, 'score', `Stress level: ${stress}/10`));
+        }
+        
+        if (sleep) {
+            observations.push(this.createFHIRObservation('vital-signs', 
+                { code: '93832-4', display: 'Sleep duration' }, 
+                sleep, 'h'));
+        }
+        
+        if (sleepQuality) {
+            observations.push(this.createFHIRObservation('survey', 
+                { code: '72133-2', display: 'Sleep quality' }, 
+                sleepQuality, 'score', `Sleep quality: ${sleepQuality}/10`));
+        }
+        
+        if (notes) {
+            observations.push(this.createFHIRObservation('social-history', 
+                { code: '48767-8', display: 'Mental health note' }, 
+                notes, null));
+        }
+        
+        if (observations.length === 0) return alert("Please enter at least one mental health metric.");
+        
+        const fhirBundle = { 
+            resourceType: 'Bundle', 
+            type: 'collection', 
+            entry: observations.map(obs => ({ resource: obs }))
+        };
+        
+        await this.storeHealthData(fhirBundle, 'mental-health');
+        this.log('🧠 Mental health data recorded');
+        setTimeout(() => displayTimelineRecords(), 500);
+    }
+
+    async recordLabData() {
+        if (!this.nostrKeys) return;
+        const observations = [];
+        
+        const glucose = document.getElementById('glucose').value;
+        const cholesterol = document.getElementById('cholesterol').value;
+        const hdl = document.getElementById('hdl').value;
+        const ldl = document.getElementById('ldl').value;
+        const hemoglobin = document.getElementById('hemoglobin').value;
+        const whiteBloodCells = document.getElementById('whiteBloodCells').value;
+        const labNotes = document.getElementById('labNotes').value;
+        
+        if (glucose) {
+            observations.push(this.createFHIRObservation('laboratory', 
+                { code: '33747-0', display: 'Glucose' }, 
+                glucose, 'mg/dL'));
+        }
+        
+        if (cholesterol) {
+            observations.push(this.createFHIRObservation('laboratory', 
+                { code: '2093-3', display: 'Total cholesterol' }, 
+                cholesterol, 'mg/dL'));
+        }
+        
+        if (hdl) {
+            observations.push(this.createFHIRObservation('laboratory', 
+                { code: '2085-9', display: 'HDL cholesterol' }, 
+                hdl, 'mg/dL'));
+        }
+        
+        if (ldl) {
+            observations.push(this.createFHIRObservation('laboratory', 
+                { code: '2089-1', display: 'LDL cholesterol' }, 
+                ldl, 'mg/dL'));
+        }
+        
+        if (hemoglobin) {
+            observations.push(this.createFHIRObservation('laboratory', 
+                { code: '718-7', display: 'Hemoglobin' }, 
+                hemoglobin, 'g/dL'));
+        }
+        
+        if (whiteBloodCells) {
+            observations.push(this.createFHIRObservation('laboratory', 
+                { code: '6690-2', display: 'White blood cells' }, 
+                whiteBloodCells, 'K/uL'));
+        }
+        
+        if (labNotes) {
+            observations.push(this.createFHIRObservation('laboratory', 
+                { code: '48767-8', display: 'Lab notes' }, 
+                labNotes, null));
+        }
+        
+        if (observations.length === 0) return alert("Please enter at least one lab value.");
+        
+        const fhirBundle = { 
+            resourceType: 'Bundle', 
+            type: 'collection', 
+            entry: observations.map(obs => ({ resource: obs }))
+        };
+        
+        await this.storeHealthData(fhirBundle, 'lab-results');
+        this.log('🔬 Lab data recorded');
+        setTimeout(() => displayTimelineRecords(), 500);
+    }
     
     // Storage and Retrieval
     async storeHealthData(fhirBundle, category) {
@@ -377,9 +547,9 @@ function recordProfileData() { healthRecord?.recordProfileData(); }
 function recordNote() { healthRecord?.recordNote(); }
 function recordVitalSigns() { healthRecord?.recordVitalSigns(); }
 // Mock other record functions for now
-function recordActivity() { alert('Activity recording logic not shown for brevity, but follows the same pattern.'); }
-function recordMentalHealth() { alert('Mental health recording logic not shown for brevity.'); }
-function recordLabData() { alert('Lab data recording logic not shown for brevity.'); }
+function recordActivity() { healthRecord?.recordActivity(); }
+function recordMentalHealth() { healthRecord?.recordMentalHealth(); }
+function recordLabData() { healthRecord?.recordLabData(); }
 
 function loadHealthRecords() { healthRecord?.loadHealthRecords(); }
 function exportHealthData() { healthRecord?.exportHealthData(); }
