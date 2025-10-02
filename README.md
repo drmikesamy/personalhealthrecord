@@ -8,7 +8,7 @@ Demo: https://drmikesamy.github.io/personalhealthrecord/
 
 A comprehensive quantified self health tracking system that stores encrypted health data on the Nostr network using the FHIR R4 standard for medical data interoperability.
 
-## 🏥 Features
+## Features
 
 ### Core Architecture
 - **Decentralized Storage**: Uses Nostr network for distributed, censorship-resistant health data storage
@@ -17,7 +17,7 @@ A comprehensive quantified self health tracking system that stores encrypted hea
 - **Multi-Relay Redundancy**: Data stored across multiple Nostr relays for high availability
 - **Self-Sovereign Identity**: You control your health identity and data completely
 
-## 🔐 Privacy & Security
+## Privacy & Security
 
 ### Data Encryption
 - All health data encrypted using **NIP-04** standard before transmission
@@ -37,7 +37,3 @@ A comprehensive quantified self health tracking system that stores encrypted hea
 - Compatible with any FHIR-supporting healthcare system
 
 This project is open source and available under the MIT License.
-
----
-
-*Built with ❤️ for health data sovereignty and privacy*
