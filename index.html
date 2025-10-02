@@ -65,33 +65,50 @@
             transform: translateY(-1px);
         }
 
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            left: 0;
-            background: #22283b;
-            min-width: 160px;
-            box-shadow: 0px 8px 16px 0px rgba(10,20,40,0.24);
-            z-index: 1;
-            border-radius: 8px;
-            overflow: hidden;
-        }
+        /* Replace the existing .dropdown-content styles with this: */
+.dropdown {
+    position: relative;
+}
 
-        .dropdown-content a {
-            color: #e5e7ef;
-            padding: 12px 16px;
-            text-decoration: none;
-            display: block;
-            font-size: 14px;
-        }
+.dropdown-content {
+    display: none;
+    position: absolute;
+    right: 0; /* Changed from left: 0 to right: 0 to align with button */
+    top: 100%; /* Position directly below the button */
+    background: #22283b;
+    min-width: 180px;
+    box-shadow: 0px 8px 16px 0px rgba(10,20,40,0.24);
+    z-index: 1;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 2px; /* Small gap to prevent flickering */
+}
 
-        .dropdown-content a:hover {
-            background-color: #2c3550;
-        }
+.dropdown-content a {
+    color: #e5e7ef;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+    font-size: 14px;
+}
 
-        .dropdown:hover .dropdown-content {
-            display: block;
-        }
+.dropdown-content a:hover {
+    background-color: #2c3550;
+}
+
+.dropdown:hover .dropdown-content {
+    display: block;
+}
+
+/* Add this to prevent dropdown from disappearing when moving mouse between button and menu */
+.dropdown-content::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: 0;
+    right: 0;
+    height: 4px;
+}
 
         h1, h2, h3, h4 {
             color: #e5e7ef;
